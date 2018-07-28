@@ -1,5 +1,7 @@
 package com.lcydream.project.timer;
 
+import com.yinhai.common.util.LOGUtil;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -7,254 +9,246 @@ import java.util.List;
 import java.util.Timer;
 
 /**
- * ¶¨Ê±Æ÷³Ø
+ * å®šæ—¶å™¨æ± 
  * @author LuoChunYun
  *
  */
 public class TimerPools {
 
-	//¶¨ÒåÒ»¸öTimerÖ´ĞĞÆ÷
+	//å®šä¹‰ä¸€ä¸ªTimeræ‰§è¡Œå™¨
 	private static Timer timer = null;
 
-	//¶¨ÒåÄ¬ÈÏµÄ¶¨Ê±Æ÷³ØµÄ´óĞ¡
+	//å®šä¹‰é»˜è®¤çš„å®šæ—¶å™¨æ± çš„å¤§å°
 	private static int size = 10000;
 
-	//¶¨ÒåÒ»¸ö¶¨Ê±Æ÷³Ø
+	//å®šä¹‰ä¸€ä¸ªå®šæ—¶å™¨æ± 
 	private static List<TimerSchle> timerPool = new ArrayList<TimerSchle>();
 
-	//Ë½ÓĞ»¯¹¹Ôì·½·¨
+	//ç§æœ‰åŒ–æ„é€ æ–¹æ³•
 	private TimerPools(){}
-	
-	//Ìí¼ÓµÚÒ»ÖÖ¶¨Ê±Æ÷ÈÎÎñ(Éè¶¨Ö¸¶¨ÈÎÎñtaskÔÚÖ¸¶¨Ê±¼ätimeÖ´ĞĞ schedule(TimerTask task, Date time))
-		public synchronized static void addTimerOne(TimerSchle timerSchle,Date date){
-			if(timerPool.size()<size){
-				//timer.schedule(timerSchle,new Date(new Date().getTime()+5000));
-				if(date.getTime() > new Date().getTime()) {
-					//ÅĞ¶ÏÕâ¸öÃû×ÖµÄ¶¨Ê±Æ÷ÊÇ·ñ´æÔÚ
-					TimerSchle schle = getTimerSchleByName(timerSchle.getTimerName());
-					if(schle != null ){
-						timerPool.remove(schle);
-						schle=null;
-					}
-					//´Ë·½·¨ÉèÖÃ¶¨Ê±Æ÷ÊÇµ¥´Î¶¨Ê±
-					timerSchle.setSingle(true);
-					timerPool.add(timerSchle);
-					Timer timer = TimerPools.getTimer();
-					if(timer!=null) {
-						if(date.getTime() < new Date().getTime()) {
-							timer.schedule(timerSchle, new Date(new Date().getTime()+1000));
-						}else{
-							timer.schedule(timerSchle, date);
-						}
-					}
-				}
-			}else{
-				throw new RuntimeException("<--------------¶¨Ê±³ØÊıÁ¿³¬¹ıÁËÏŞÖÆ-------------->");
+
+	//æ·»åŠ ç¬¬ä¸€ç§å®šæ—¶å™¨ä»»åŠ¡(è®¾å®šæŒ‡å®šä»»åŠ¡taskåœ¨æŒ‡å®šæ—¶é—´timeæ‰§è¡Œ schedule(TimerTask task, Date time))
+	public synchronized static void addTimerOne(TimerSchle timerSchle,Date date){
+		if(timerPool.size()<size){
+			//timer.schedule(timerSchle,new Date(new Date().getTime()+5000));
+			//åˆ¤æ–­è¿™ä¸ªåå­—çš„å®šæ—¶å™¨æ˜¯å¦å­˜åœ¨
+			TimerSchle schle = getTimerSchleByName(timerSchle.getTimerName());
+			if(schle != null ){
+				timerPool.remove(schle);
+				removeTimerSchleByName(timerSchle.getTimerName());
+				schle=null;
 			}
-		}
-
-		//Ìí¼ÓµÚ¶şÖÖ¶¨Ê±Æ÷ÈÎÎñ(Éè¶¨Ö¸¶¨ÈÎÎñtaskÔÚÖ¸¶¨ÑÓ³Ùdelayºó½øĞĞ¹Ì¶¨ÑÓ³ÙperoidµÄÖ´ĞĞ schedule(TimerTask task, long delay, long period))
-		public synchronized static void addTimerTwo(TimerSchle timerSchle,long delay, long period){
-			if(timerPool.size()<size){
-				if(period>0) {
-					TimerSchle schle = getTimerSchleByName(timerSchle.getTimerName());
-					if(schle != null ){
-						timerPool.remove(schle);
-						schle=null;
-					}
-					timerSchle.setFourTimer(false);  //ÉèÖÃÎª¹æÂÉµÄ¶¨Ê±
-					timerPool.add(timerSchle);
-					Timer timer = TimerPools.getTimer();
-					if(timer != null){
-						timer.schedule(timerSchle, delay ,period);
-					}
-
-				}
-			}else{
-				throw new RuntimeException("<--------------¶¨Ê±³ØÊıÁ¿³¬¹ıÁËÏŞÖÆ-------------->");
-			}
-		}
-
-		//Ìí¼ÓµÚÈıÖÖ¶¨Ê±Æ÷ÈÎÎñ(Éè¶¨Ö¸¶¨ÈÎÎñtaskÔÚÖ¸¶¨ÑÓ³Ùdelayºó½øĞĞ¹Ì¶¨ÆµÂÊperoidµÄÖ´ĞĞ)
-		//scheduleAtFixedRate(TimerTask task, long delay, long period)
-		public synchronized static void addTimerThree(TimerSchle timerSchle,long delay, long period){
-			if(timerPool.size()<size){
-				if(period>0) {
-					TimerSchle schle = getTimerSchleByName(timerSchle.getTimerName());
-					if(schle != null ){
-						timerPool.remove(schle);
-						schle=null;
-					}
-					timerSchle.setFourTimer(false);  //ÉèÖÃÎª¹æÂÉµÄ¶¨Ê±
-					timerPool.add(timerSchle);
-					Timer timer = TimerPools.getTimer();
-					if(timer != null){
-						timer.scheduleAtFixedRate(timerSchle, delay ,period);
-					}
-				}
-			}else{
-				throw new RuntimeException("<--------------¶¨Ê±³ØÊıÁ¿³¬¹ıÁËÏŞÖÆ-------------->");
-			}
-		}
-
-		//Ìí¼ÓµÚËÄÖÖ¶¨Ê±Æ÷ÈÎÎñ(°²ÅÅÖ¸¶¨µÄÈÎÎñtaskÔÚÖ¸¶¨µÄÊ±¼äfirstTime¿ªÊ¼½øĞĞÖØ¸´µÄ¹Ì¶¨ËÙÂÊperiodÖ´ĞĞ)
-		//Timer.scheduleAtFixedRate(TimerTask task,Date firstTime,long period)
-		public synchronized static void addTimerFour(TimerSchle timerSchle,Date firstTime,long period){
-			if(timerPool.size()<size){
-				if(period>0) {
-					TimerSchle schle = getTimerSchleByName(timerSchle.getTimerName());
-					if(schle != null ){
-						timerPool.remove(schle);
-						schle=null;
-					}
-					timerPool.add(timerSchle);
-					Timer timer = TimerPools.getTimer();
-					if(timer != null){
-						if(firstTime.getTime() < new Date().getTime()){
-							timer.scheduleAtFixedRate(timerSchle, new Date(new Date().getTime()+10) ,period);
-						}else{
-							timer.scheduleAtFixedRate(timerSchle, firstTime ,period);
-						}
-					}
-
-				}
-			}else{
-				throw new RuntimeException("<--------------¶¨Ê±³ØÊıÁ¿³¬¹ıÁËÏŞÖÆ-------------->");
-			}
-		}
-
-		//¸ù¾İ¶¨Ê±Æ÷µÄÃû×Ö»ñÈ¡¶¨Ê±Æ÷¶ÔÏó
-		public synchronized static TimerSchle getTimerSchleByName(String timerSchleName){
-			for(TimerSchle ts : timerPool){
-				if(timerSchleName!=null &&
-						!"".equals(timerSchleName.trim())
-						&&ts.getTimerName().equals(timerSchleName)){
-					return ts;
-				}
-			}
-			return null;
-		}
-
-		//¸ù¾İ¶¨Ê±Æ÷µÄÃû×Ö»òÕß¶¨Ê±Æ÷µÄÀàĞÍÒì³£¶¨Ê±Æ÷
-		public synchronized static void removeTimerSchleByName(String timerSchleName){
-			TimerSchle ts = getTimerSchleByName(timerSchleName);
-			timerPool.remove(ts);
-			//ÒÆ³ı²¢ÇÒÈ¡Ïû¶¨Ê±Æ÷
-			if(ts != null){
-				ts.setCancle(true);
-				timerPool.remove(ts);
-				ts.cancel();
-				ts=null;
-			}
-			/*if(timerPool.size() == 0){
-				timer.cancel();
-			}*/
-		}
-
-		//¸ù¾İ¶¨Ê±Æ÷Àà¶ÔÏóÒÆ³ı¸Ä¶¨Ê±Æ÷
-		public synchronized static void removeTimerSchleByClass(TimerSchle timerSchle){
-			//ÒÆ³ı²¢ÇÒÈ¡Ïû¶¨Ê±Æ÷
-			if(timerSchle != null){
-				timerSchle.setCancle(true);
-				timerPool.remove(timerSchle);
-				timerSchle.cancel();
-				timerSchle=null;
-			}
-			/*if(timerPool.size() == 0){
-				timer.cancel();
-			}*/
-		}
-
-		//ĞŞ¸Ä¶¨Ê±Æ÷ºóË¢ĞÂ¶¨Ê±³Ø¶ÔÏó
-		public synchronized static void refreshOne(TimerSchle timerSchle,Date date){
-			if(timerSchle != null){
-				if(date.getTime() > new Date().getTime()){
-					TimerSchle ts = new TimerSchle(timerSchle.getTimerName(),timerSchle.getClassName(),timerSchle.getMethodName(),timerSchle.getArguments());
-					ts.copyToMe(timerSchle);
-					//È¡Ïû¶¨Ê±Æ÷µÄÖ´ĞĞ
-					timerSchle.cancel();
-					//ÏÈ½«¶¨Ê±Æ÷ÈÎÎñÈ¡Ïû
-					timerPool.remove(timerSchle);
-					timer.purge();
-					//±êÊ¶ÓÃÓÚGC»ØÊÕ
-					timerSchle=null;
-					addTimerOne(ts, date);
-					SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-					System.out.println("<------------¶¨Ê±Æ÷"+ts.getTimerName()+"Ë¢ĞÂ³É¹¦***********Ë¢ĞÂÊ±¼äÊÇ:"+formatter.format(new Date())+"---------->\n\n");
+			//æ­¤æ–¹æ³•è®¾ç½®å®šæ—¶å™¨æ˜¯å•æ¬¡å®šæ—¶
+			timerSchle.setSingle(true);
+			timerPool.add(timerSchle);
+			Timer timer = TimerPools.getTimer();
+			if(timer!=null) {
+				if(date.getTime() < new Date().getTime()) {
+					timer.schedule(timerSchle, new Date(new Date().getTime()+1000));
 				}else{
-					throw new RuntimeException("<--------------¶¨Ê±µÄÊ±¼ä²»ÄÜÔÚÉèÖÃ¶¨Ê±Æ÷µÄÊ±¼äÇ°Ãæ-------------->");
-				}
-			}else{
-				throw new RuntimeException("<--------------Î´»ñÈ¡µ½ÓĞĞ§µÄ¶¨Ê±ÈÎÎñ-------------->");
-			}
-		}
-
-		//ĞŞ¸Ä¶¨Ê±Æ÷ºóË¢ĞÂ¶¨Ê±³Ø¶ÔÏó
-		public synchronized static void refreshTwo(TimerSchle timerSchle,long delay, long period){
-			if(timerSchle != null){
-				if(delay>0 && period>0){
-					TimerSchle ts = new TimerSchle(timerSchle.getTimerName(),timerSchle.getClassName(),timerSchle.getMethodName(),timerSchle.getArguments());
-					ts.copyToMe(timerSchle);
-					//È¡Ïû¶¨Ê±Æ÷µÄÖ´ĞĞ
-					timerSchle.cancel();
-					//ÏÈ½«¶¨Ê±Æ÷ÈÎÎñÈ¡Ïû
-					timerPool.remove(timerSchle);
-					//±êÊ¶ÓÃÓÚGC»ØÊÕ
-					timerSchle=null;
-					addTimerTwo(ts, delay, period);
-					SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-					System.out.println("<------------¶¨Ê±Æ÷"+ts.getTimerName()+"Ë¢ĞÂ³É¹¦***********Ë¢ĞÂÊ±¼äÊÇ:"+formatter.format(new Date())+"---------->");
-				}else{
-					throw new RuntimeException("<--------------¶¨Ê±µÄÊ±¼ä²»ÄÜÎªĞ¡ÓÚÁãµÄÊı-------------->");
-				}
-			}else{
-				throw new RuntimeException("<--------------Î´»ñÈ¡µ½ÓĞĞ§µÄ¶¨Ê±ÈÎÎñ-------------->");
-			}
-		}
-
-		public synchronized static void refreshThree(TimerSchle timerSchle,Date firstTime,long period){
-			if(timerSchle != null){
-				if(period < 0){
-					throw new RuntimeException("¶¨Ê±µÄÊ±¼ä²»ÄÜÎªĞ¡ÓÚÁãµÄÊı");
-				}
-				TimerSchle ts = new TimerSchle(timerSchle.getTimerName(),timerSchle.getClassName(),timerSchle.getMethodName(),timerSchle.getArguments());
-				ts.copyToMe(timerSchle);
-				//È¡Ïû¶¨Ê±Æ÷µÄÖ´ĞĞ
-				timerSchle.cancel();
-				//ÏÈ½«¶¨Ê±Æ÷ÈÎÎñÈ¡Ïû
-				timerPool.remove(timerSchle);
-				//±êÊ¶ÓÃÓÚGC»ØÊÕ
-				timerSchle=null;
-				addTimerFour(ts, firstTime, ts.getNextExecuteTime());
-				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				System.out.println("<------------¶¨Ê±Æ÷"+ts.getTimerName()+"Ë¢ĞÂ³É¹¦***********Ë¢ĞÂÊ±¼äÊÇ:"+formatter.format(new Date())+"---------->");
-			}else{
-				throw new RuntimeException("<------------Î´»ñÈ¡µ½ÓĞĞ§µÄ¶¨Ê±ÈÎÎñ------------>");
-			}
-		}
-
-		//»ñÈ¡¶¨Ê±Æ÷ÖĞÈÎÎñµÄ¸öÊı
-		public synchronized static int getTimerPoolSize(){
-			return timerPool.size();
-		}
-
-		//µ¥Á£Ä£Ê½»ñÈ¡timer
-		public synchronized static Timer getTimer(){
-			// ¶ÔÏóÊµÀı»¯Ê±Óë·ñÅĞ¶Ï£¨²»Ê¹ÓÃÍ¬²½´úÂë¿é£¬instance²»µÈÓÚnullÊ±£¬Ö±½Ó·µ»Ø¶ÔÏó£¬Ìá¸ßÔËĞĞĞ§ÂÊ£©
-			if(timer==null){
-				//Í¬²½´úÂë¿é£¨¶ÔÏóÎ´³õÊ¼»¯Ê±£¬Ê¹ÓÃÍ¬²½´úÂë¿é£¬±£Ö¤¶àÏß³Ì·ÃÎÊÊ±¶ÔÏóÔÚµÚÒ»´Î´´½¨ºó£¬²»ÔÙÖØ¸´±»´´½¨£©
-				synchronized (TimerPools.class) {
-					//Î´³õÊ¼»¯£¬Ôò³õÊ¼instance±äÁ¿
-					if(timer==null){
-						timer = new Timer();
-					}
+					timer.schedule(timerSchle, date);
 				}
 			}
-			return timer;
-		}
-
-		//ÉèÖÃ¶¨Ê±Æ÷³ØµÄ´óĞ¡
-		public synchronized static void setTimerSize(int sizeLong){
-			size = sizeLong;
+		}else{
+			throw new RuntimeException("<--------------å®šæ—¶æ± æ•°é‡è¶…è¿‡äº†é™åˆ¶-------------->");
 		}
 	}
+
+	//æ·»åŠ ç¬¬äºŒç§å®šæ—¶å™¨ä»»åŠ¡(è®¾å®šæŒ‡å®šä»»åŠ¡taskåœ¨æŒ‡å®šå»¶è¿Ÿdelayåè¿›è¡Œå›ºå®šå»¶è¿Ÿperoidçš„æ‰§è¡Œ schedule(TimerTask task, long delay, long period))
+	public synchronized static void addTimerTwo(TimerSchle timerSchle,long delay, long period){
+		if(timerPool.size()<size){
+			if(period>0) {
+				TimerSchle schle = getTimerSchleByName(timerSchle.getTimerName());
+				if(schle != null ){
+					timerPool.remove(schle);
+					removeTimerSchleByName(timerSchle.getTimerName());
+					schle=null;
+				}
+				timerSchle.setFourTimer(false);  //è®¾ç½®ä¸ºè§„å¾‹çš„å®šæ—¶
+				timerPool.add(timerSchle);
+				Timer timer = TimerPools.getTimer();
+				if(timer != null){
+					timer.schedule(timerSchle, delay ,period);
+				}
+
+			}
+		}else{
+			throw new RuntimeException("<--------------å®šæ—¶æ± æ•°é‡è¶…è¿‡äº†é™åˆ¶-------------->");
+		}
+	}
+
+	//æ·»åŠ ç¬¬ä¸‰ç§å®šæ—¶å™¨ä»»åŠ¡(è®¾å®šæŒ‡å®šä»»åŠ¡taskåœ¨æŒ‡å®šå»¶è¿Ÿdelayåè¿›è¡Œå›ºå®šé¢‘ç‡peroidçš„æ‰§è¡Œ)
+	//scheduleAtFixedRate(TimerTask task, long delay, long period)
+	public synchronized static void addTimerThree(TimerSchle timerSchle,long delay, long period){
+		if(timerPool.size()<size){
+			if(period>0) {
+				TimerSchle schle = getTimerSchleByName(timerSchle.getTimerName());
+				if(schle != null ){
+					timerPool.remove(schle);
+					removeTimerSchleByName(timerSchle.getTimerName());
+					schle=null;
+				}
+				timerSchle.setFourTimer(false);  //è®¾ç½®ä¸ºè§„å¾‹çš„å®šæ—¶
+				timerPool.add(timerSchle);
+				Timer timer = TimerPools.getTimer();
+				if(timer != null){
+					timer.scheduleAtFixedRate(timerSchle, delay ,period);
+				}
+			}
+		}else{
+			throw new RuntimeException("<--------------å®šæ—¶æ± æ•°é‡è¶…è¿‡äº†é™åˆ¶-------------->");
+		}
+	}
+
+	//æ·»åŠ ç¬¬å››ç§å®šæ—¶å™¨ä»»åŠ¡(å®‰æ’æŒ‡å®šçš„ä»»åŠ¡taskåœ¨æŒ‡å®šçš„æ—¶é—´firstTimeå¼€å§‹è¿›è¡Œé‡å¤çš„å›ºå®šé€Ÿç‡periodæ‰§è¡Œ)
+	//Timer.scheduleAtFixedRate(TimerTask task,Date firstTime,long period)
+	public synchronized static void addTimerFour(TimerSchle timerSchle,Date firstTime,long period){
+		if(timerPool.size()<size){
+			if(period>0) {
+				TimerSchle schle = getTimerSchleByName(timerSchle.getTimerName());
+				if(schle != null ){
+					timerPool.remove(schle);
+					removeTimerSchleByName(timerSchle.getTimerName());
+					schle=null;
+				}
+				timerPool.add(timerSchle);
+				Timer timer = TimerPools.getTimer();
+				if(timer != null){
+					if(firstTime.getTime() < new Date().getTime()){
+						timer.scheduleAtFixedRate(timerSchle, new Date(new Date().getTime()+10) ,period);
+					}else{
+						timer.scheduleAtFixedRate(timerSchle, firstTime ,period);
+					}
+				}
+
+			}
+		}else{
+			throw new RuntimeException("<--------------å®šæ—¶æ± æ•°é‡è¶…è¿‡äº†é™åˆ¶-------------->");
+		}
+	}
+
+	//æ ¹æ®å®šæ—¶å™¨çš„åå­—è·å–å®šæ—¶å™¨å¯¹è±¡
+	public synchronized static TimerSchle getTimerSchleByName(String timerSchleName){
+		for(TimerSchle ts : timerPool){
+			if(timerSchleName!=null &&
+					!"".equals(timerSchleName.trim())
+					&&ts.getTimerName().equals(timerSchleName)){
+				return ts;
+			}
+		}
+		return null;
+	}
+
+	//æ ¹æ®å®šæ—¶å™¨çš„åå­—æˆ–è€…å®šæ—¶å™¨çš„ç±»å‹å¼‚å¸¸å®šæ—¶å™¨
+	public synchronized static void removeTimerSchleByName(String timerSchleName){
+		TimerSchle ts = getTimerSchleByName(timerSchleName);
+		removeTimerSchle(ts);
+	}
+
+	//æ ¹æ®å®šæ—¶å™¨ç±»å¯¹è±¡ç§»é™¤æ”¹å®šæ—¶å™¨
+	public synchronized static void removeTimerSchleByClass(TimerSchle timerSchle){
+		removeTimerSchle(timerSchle);
+	}
+
+	public static void removeTimerSchle(TimerSchle timerSchle){
+		//ç§»é™¤å¹¶ä¸”å–æ¶ˆå®šæ—¶å™¨
+		if(timerSchle != null){
+			timerSchle.setCancle(true);
+			timerPool.remove(timerSchle);
+			timerSchle.cancel();
+			timerSchle=null;
+		}
+	}
+
+	//ä¿®æ”¹å®šæ—¶å™¨ååˆ·æ–°å®šæ—¶æ± å¯¹è±¡
+	public synchronized static void refreshOne(TimerSchle timerSchle,Date date){
+		if(timerSchle != null){
+			if(date.getTime() > new Date().getTime()){
+				TimerSchle ts = new TimerSchle(timerSchle.getTimerName(),timerSchle.getClassName(),timerSchle.getMethodName(),timerSchle.getArguments());
+				ts.copyToMe(timerSchle);
+				//å–æ¶ˆå®šæ—¶å™¨çš„æ‰§è¡Œ
+				timerSchle.cancel();
+				//å…ˆå°†å®šæ—¶å™¨ä»»åŠ¡å–æ¶ˆ
+				timerPool.remove(timerSchle);
+				//æ ‡è¯†ç”¨äºGCå›æ”¶
+				timerSchle=null;
+				addTimerOne(ts, date);
+				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				LOGUtil.i(LOGUtil.Level.INFO,"<------------å®šæ—¶å™¨"+ts.getTimerName()+"åˆ·æ–°æˆåŠŸ***********åˆ·æ–°æ—¶é—´æ˜¯:"+formatter.format(new Date())+"---------->\n\n");
+			}else{
+				throw new RuntimeException("<--------------å®šæ—¶çš„æ—¶é—´ä¸èƒ½åœ¨è®¾ç½®å®šæ—¶å™¨çš„æ—¶é—´å‰é¢-------------->");
+			}
+		}else{
+			throw new RuntimeException("<--------------æœªè·å–åˆ°æœ‰æ•ˆçš„å®šæ—¶ä»»åŠ¡-------------->");
+		}
+	}
+
+	//ä¿®æ”¹å®šæ—¶å™¨ååˆ·æ–°å®šæ—¶æ± å¯¹è±¡
+	public synchronized static void refreshTwo(TimerSchle timerSchle,long delay, long period){
+		if(timerSchle != null){
+			if(delay>0 && period>0){
+				TimerSchle ts = new TimerSchle(timerSchle.getTimerName(),timerSchle.getClassName(),timerSchle.getMethodName(),timerSchle.getArguments());
+				ts.copyToMe(timerSchle);
+				//å–æ¶ˆå®šæ—¶å™¨çš„æ‰§è¡Œ
+				timerSchle.cancel();
+				//å…ˆå°†å®šæ—¶å™¨ä»»åŠ¡å–æ¶ˆ
+				timerPool.remove(timerSchle);
+				//æ ‡è¯†ç”¨äºGCå›æ”¶
+				timerSchle=null;
+				addTimerTwo(ts, delay, period);
+				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				LOGUtil.i(LOGUtil.Level.INFO,"<------------å®šæ—¶å™¨"+ts.getTimerName()+"åˆ·æ–°æˆåŠŸ***********åˆ·æ–°æ—¶é—´æ˜¯:"+formatter.format(new Date())+"---------->");
+			}else{
+				throw new RuntimeException("<--------------å®šæ—¶çš„æ—¶é—´ä¸èƒ½ä¸ºå°äºé›¶çš„æ•°-------------->");
+			}
+		}else{
+			throw new RuntimeException("<--------------æœªè·å–åˆ°æœ‰æ•ˆçš„å®šæ—¶ä»»åŠ¡-------------->");
+		}
+	}
+
+	public synchronized static void refreshThree(TimerSchle timerSchle,Date firstTime,long period){
+		if(timerSchle != null){
+			if(period < 0){
+				throw new RuntimeException("å®šæ—¶çš„æ—¶é—´ä¸èƒ½ä¸ºå°äºé›¶çš„æ•°");
+			}
+			TimerSchle ts = new TimerSchle(timerSchle.getTimerName(),timerSchle.getClassName(),timerSchle.getMethodName(),timerSchle.getArguments());
+			ts.copyToMe(timerSchle);
+			//å–æ¶ˆå®šæ—¶å™¨çš„æ‰§è¡Œ
+			timerSchle.cancel();
+			//å…ˆå°†å®šæ—¶å™¨ä»»åŠ¡å–æ¶ˆ
+			timerPool.remove(timerSchle);
+			//æ ‡è¯†ç”¨äºGCå›æ”¶
+			timerSchle=null;
+			addTimerFour(ts, firstTime, ts.getNextExecuteTime());
+			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+			LOGUtil.i(LOGUtil.Level.INFO,"<------------å®šæ—¶å™¨"+ts.getTimerName()+"åˆ·æ–°æˆåŠŸ***********åˆ·æ–°æ—¶é—´æ˜¯:"+formatter.format(new Date())+"---------->");
+		}else{
+			throw new RuntimeException("<------------æœªè·å–åˆ°æœ‰æ•ˆçš„å®šæ—¶ä»»åŠ¡------------>");
+		}
+	}
+
+	//è·å–å®šæ—¶å™¨ä¸­ä»»åŠ¡çš„ä¸ªæ•°
+	public synchronized static int getTimerPoolSize(){
+		return timerPool.size();
+	}
+
+	//å•ç²’æ¨¡å¼è·å–timer
+	public synchronized static Timer getTimer(){
+		// å¯¹è±¡å®ä¾‹åŒ–æ—¶ä¸å¦åˆ¤æ–­ï¼ˆä¸ä½¿ç”¨åŒæ­¥ä»£ç å—ï¼Œinstanceä¸ç­‰äºnullæ—¶ï¼Œç›´æ¥è¿”å›å¯¹è±¡ï¼Œæé«˜è¿è¡Œæ•ˆç‡ï¼‰
+		if(timer==null){
+			//åŒæ­¥ä»£ç å—ï¼ˆå¯¹è±¡æœªåˆå§‹åŒ–æ—¶ï¼Œä½¿ç”¨åŒæ­¥ä»£ç å—ï¼Œä¿è¯å¤šçº¿ç¨‹è®¿é—®æ—¶å¯¹è±¡åœ¨ç¬¬ä¸€æ¬¡åˆ›å»ºåï¼Œä¸å†é‡å¤è¢«åˆ›å»ºï¼‰
+			synchronized (TimerPools.class) {
+				//æœªåˆå§‹åŒ–ï¼Œåˆ™åˆå§‹instanceå˜é‡
+				if(timer==null){
+					timer = new Timer();
+				}
+			}
+		}
+		return timer;
+	}
+
+	//è®¾ç½®å®šæ—¶å™¨æ± çš„å¤§å°
+	public synchronized static void setTimerSize(int sizeLong){
+		size = sizeLong;
+	}
+}
