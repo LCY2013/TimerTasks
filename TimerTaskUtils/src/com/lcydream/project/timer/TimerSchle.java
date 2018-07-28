@@ -1,5 +1,11 @@
 package com.lcydream.project.timer;
 
+import com.yinhai.common.util.LOGUtil;
+import com.yinhai.simpay.his.orthopedics.common.constant.I_81OrthopedicsConstant;
+import com.yinhai.simpay.his.orthopedics.common.enums.TagerType;
+import org.springframework.web.context.ContextLoader;
+import org.springframework.web.context.WebApplicationContext;
+
 import java.lang.reflect.Method;
 import java.util.Date;
 import java.util.HashMap;
@@ -23,7 +29,7 @@ public class TimerSchle extends TimerTask{
 	private int nowCount=0;      //当前定时器执行次数
 	private boolean issuspend=false; //设置定时器使用的标识，如果定时的次数到了最大数就为true
 	private boolean isSingle=false;  //设置定时器的定时规则:false表示循环定时，true表示单次定时
-	private String targerSupper=TagerType.SUPPER_ORDINARY.name();  //设置定时对象执行目标的来源（目前支持Spring容器和无依赖的对象）默认支持没有依赖的对象反射
+	private String targerSupper= TagerType.SUPPER_ORDINARY.name();  //设置定时对象执行目标的来源（目前支持Spring容器和无依赖的对象）默认支持没有依赖的对象反射
 	private Map<Integer,Integer> executeTimeMap = null;  //自定义定时任务每次执行时间
 	private Map<Integer,Integer> defaultExecuTimeMap = null;  //该用户没有自定义时，使用默认的定时任务执行时间
 	private boolean isCancle=false;     //标识改定时任务是否取消
@@ -86,7 +92,7 @@ public class TimerSchle extends TimerTask{
 				}
 				if(!isSingle && !isCancle && isFourTimer){//如果是自定义循环定时就执行他的循环定时时间
 					//刷新定时器对象
-                    TimerPools.refreshThree(this,new Date(this.getNextExecuteTime()),this.getNextExecuteTime());
+					TimerPools.refreshThree(this,new Date(this.getNextExecuteTime()),this.getNextExecuteTime());
 				}
 			}else{
 				System.out.println("<-----------定时器"+this.timerName+"定时任务完成----------->");
@@ -100,7 +106,7 @@ public class TimerSchle extends TimerTask{
 				TimerPools.removeTimerSchleByClass(this);
 				System.out.println("<-------------------单次定时器"+this.timerName+"已经成功执行------------------->");
 			}
-			if(!isSingle&&isCancle){  
+			if(!isSingle&&isCancle){
 				System.out.println("<-------------------循环定时器"+this.timerName+"已经成功执行------------------->");
 			}
 		} catch (Exception e) {
@@ -117,17 +123,30 @@ public class TimerSchle extends TimerTask{
 			if(m.getName()!=null && this.methodName!=null
 					&& !"".equals(this.methodName)
 					&& m.getName().equals(this.methodName)){
-				System.out.println("************************************************************************");
-				System.out.println("*                           定时器执行的方法开始执行                                                                  *");
-				System.out.println("*                                                                      *");
+				LOGUtil.i(LOGUtil.Level.INFO,"************************************************************************");
+				LOGUtil.i(LOGUtil.Level.INFO,"*                           定时器"+this.timerName+"执行的方法开始执行                                                                  *");
+				LOGUtil.i(LOGUtil.Level.INFO,"*                                                                      *");
 				Object obj = null;
 				if(this.targerSupper.equals(TagerType.SUPPER_SPRING.name())) {  //支持Spring依赖注入
-					/*WebApplicationContext wac = ContextLoader.getCurrentWebApplicationContext();
+					WebApplicationContext wac = ContextLoader.getCurrentWebApplicationContext();
 					String sName = clazz.getSimpleName();
-					sName = sName.replaceFirst(sName.split("")[0], sName.split("")[0].toLowerCase());
+					char[] chars=new char[1];
+					chars[0]=sName.charAt(0);
+					String temp=new String(chars);
+					sName = sName.replaceFirst(temp, temp.toLowerCase());
 					if(wac != null) {
-						Object wacBean = wac.getBean(sName);
-						Object wacBeanByType = wac.getBean(clazz);
+						Object wacBean = null;
+						try {
+							wacBean = wac.getBean(sName);
+						}catch (Exception e){
+							LOGUtil.i(LOGUtil.Level.ERROR,"Spring中没有找到"+sName);
+						}
+						Object wacBeanByType = null;
+						try {
+							wacBeanByType = wac.getBean(clazz);
+						}catch (Exception e){
+							LOGUtil.i(LOGUtil.Level.ERROR,"Spring中没有找到"+clazz.getSimpleName()+"类型");
+						}
 						if(wacBean != null) {
 							//执行方法
 							obj = m.invoke(wacBean, this.arguments);
@@ -140,30 +159,31 @@ public class TimerSchle extends TimerTask{
 						}
 					}else{
 						LOGUtil.i(LOGUtil.Level.ERROR,"未获取到Spring的上下文，请在有效的Spring环境中使用。");
-					}*/
-					System.out.println("从Spring中获取对象");
+					}
+					//System.out.println("从Spring中获取对象");
 				}else{   //普通对象执行
 					//获取改类对象
 					Object object = clazz.newInstance();
 					obj = m.invoke(object,this.arguments);
 				}
-				System.out.println("*                                                                      *");
-				System.out.println("*                           定时器执行的方法结束执行                                                                   *");
-				System.out.println("*************************************************************************\n\n");
+				LOGUtil.i(LOGUtil.Level.INFO,"*                                                                      *");
+				LOGUtil.i(LOGUtil.Level.INFO,"*                           定时器执行的方法结束执行                                                                   *");
+				LOGUtil.i(LOGUtil.Level.INFO,"*************************************************************************\n\n");
 				//设置返回值
 				if(obj != null){
 					setReturnResult(obj);
-					System.out.println("********************定时器执行的方法<"+this.methodName+">的返回值***********************");
-					System.out.println("<------------定时任务返回值------------>"+obj);
-					System.out.println("********************定时器执行的方法<"+this.methodName+">的返回值***********************\n\n");
+					LOGUtil.i(LOGUtil.Level.INFO,"********************定时器执行的方法<"+this.methodName+">的返回值***********************");
+					LOGUtil.i(LOGUtil.Level.INFO,"<------------定时任务返回值------------>"+obj);
+					LOGUtil.i(LOGUtil.Level.INFO,"********************定时器执行的方法<"+this.methodName+">的返回值***********************\n\n");
 				}
 				break;
 			}
 		}
 		if(i==methlist.length){
-			System.out.println("<-------------------定时器执行时未找到有效的方法------------------->");
+			LOGUtil.i(LOGUtil.Level.INFO,"<-------------------定时器执行时未找到有效的方法------------------->");
+			TimerPools.removeTimerSchleByClass(this);
 		}
-		System.out.println("<-------------------定时池中定时器的数量是:"+TimerPools.getTimerPoolSize()+"------------------->");
+		LOGUtil.i(LOGUtil.Level.INFO,"<-------------------定时池中定时器的数量是:"+TimerPools.getTimerPoolSize()+"------------------->");
 	}
 
 	/**
@@ -287,9 +307,9 @@ public class TimerSchle extends TimerTask{
 	public Map<Integer, Integer> getExecuteTimeMap() {
 		return executeTimeMap;
 	}
-	
-	
-	
+
+
+
 	public void setFourTimer(boolean isFourTimer) {
 		this.isFourTimer = isFourTimer;
 	}
@@ -349,7 +369,7 @@ public class TimerSchle extends TimerTask{
 		this.timerFrequency = executeTimeMap.size();
 		this.executeTimeMap = executeTimeMap;
 	}
-	
-	
+
+
 
 }
